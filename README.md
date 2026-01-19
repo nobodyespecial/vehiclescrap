@@ -183,6 +183,7 @@ npm start
 
 ## Releases
 
+- **v1.1.0** – CSV exports for All Vehicles and Search results.
 - **v1.0.0** – First public release (authentication, vehicle CRUD, analytics dashboard).
 
 ## Troubleshooting

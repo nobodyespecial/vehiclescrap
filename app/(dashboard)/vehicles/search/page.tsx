@@ -16,11 +16,14 @@ export default function SearchVehiclePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasSearched, setHasSearched] = useState(false);
+  const [lastCriteria, setLastCriteria] = useState<VehicleSearchCriteria | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   const handleSearch = async (criteria: VehicleSearchCriteria) => {
     setIsLoading(true);
     setError('');
     setHasSearched(true);
+    setLastCriteria(criteria);
 
     try {
       const response = await fetch(`/api/vehicles/search?type=${vehicleType}`, {
@@ -48,6 +51,42 @@ export default function SearchVehiclePage() {
 
   const handleRowClick = (vehicleId: string) => {
     router.push(`/vehicles/${vehicleId}`);
+  };
+
+  const handleExport = async () => {
+    if (!lastCriteria) return;
+
+    try {
+      setIsExporting(true);
+      setError('');
+
+      const response = await fetch(`/api/vehicles/export?type=${vehicleType}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(lastCriteria),
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || 'Failed to export vehicles');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'vehicles_search_export.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while exporting vehicles');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -78,9 +117,22 @@ export default function SearchVehiclePage() {
 
       {hasSearched && !isLoading && (
         <div className="mt-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Search Results ({vehicles.length} found)
-          </h2>
+          <div className="flex items-center justify-between mb-4 gap-3 flex-col sm:flex-row">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Search Results ({vehicles.length} found)
+            </h2>
+            {vehicles.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                disabled={!lastCriteria}
+                isLoading={isExporting}
+              >
+                Export CSV
+              </Button>
+            )}
+          </div>
           {vehicles.length === 0 ? (
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
               <p className="text-gray-600">No vehicles found matching your search criteria.</p>

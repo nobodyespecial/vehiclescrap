@@ -15,6 +15,7 @@ export default function AllVehiclesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
 
   const fetchVehicles = async () => {
     setIsLoading(true);
@@ -36,6 +37,41 @@ export default function AllVehiclesPage() {
   useEffect(() => {
     fetchVehicles();
   }, []);
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      setError('');
+
+      const response = await fetch('/api/vehicles/export', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Export all vehicles for the user; client-side quick search is not applied
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || 'Failed to export vehicles');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'vehicles_export.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError(err.message || 'An error occurred while exporting vehicles');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   const filteredVehicles = useMemo(() => {
     if (!search.trim()) return vehicles;
@@ -83,6 +119,9 @@ export default function AllVehiclesPage() {
           />
           <Button variant="secondary" onClick={fetchVehicles} isLoading={isLoading}>
             Refresh
+          </Button>
+          <Button variant="outline" onClick={handleExport} isLoading={isExporting}>
+            Export CSV
           </Button>
         </div>
       </div>
