@@ -7,6 +7,7 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
   options: { value: string; label: string }[];
+  placeholder?: string;
 }
 
 export default function Select({
@@ -15,7 +16,8 @@ export default function Select({
   options,
   className,
   id,
-  ...props
+  placeholder,
+  ...selectProps
 }: SelectProps) {
   const generatedId = useId();
   const selectId = id || generatedId;
@@ -38,11 +40,11 @@ export default function Select({
           error ? 'border-red-500' : 'border-gray-300',
           className
         )}
-        {...props}
+        {...selectProps}
       >
-        {props.placeholder && (
+        {placeholder && (
           <option value="" disabled>
-            {props.placeholder}
+            {placeholder}
           </option>
         )}
         {options.map((option) => (
