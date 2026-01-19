@@ -30,7 +30,7 @@ export default function LoginPage() {
       if (signInError) {
         // Provide helpful error message for email confirmation
         if (signInError.message.includes('email') && signInError.message.includes('confirm')) {
-          setError('Please check your email and confirm your account before signing in. If you didn\'t receive an email, check your spam folder.');
+          setError('Please check your email and confirm your account before signing in. If you didn’t receive an email, check your spam folder.');
         } else {
           setError(signInError.message);
         }
