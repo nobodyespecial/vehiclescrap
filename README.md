@@ -181,6 +181,10 @@ npm run build
 npm start
 ```
 
+## Releases
+
+- **v1.0.0** – First public release (authentication, vehicle CRUD, analytics dashboard).
+
 ## Troubleshooting
 
 ### Database Connection Issues
