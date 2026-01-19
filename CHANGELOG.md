@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-01-19
+
+- Added attachments/documents feature:
+  - New `vehicle_attachments` table with RLS policies.
+  - API to list/create attachments per vehicle.
+  - Upload section on the vehicle details page that stores files in the `vehicle-files` Supabase Storage bucket.
+
 ## [1.1.0] - 2026-01-19
 
 - Added CSV export for vehicles:

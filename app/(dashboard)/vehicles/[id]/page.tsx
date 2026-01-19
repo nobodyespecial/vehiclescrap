@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Vehicle } from '@/types/vehicle';
+import { Vehicle, VehicleAttachment, AttachmentType } from '@/types/vehicle';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { formatCurrency, formatDate } from '@/lib/utils';
+import { createClient } from '@/lib/supabase/client';
 
 export default function VehicleDetailsPage() {
   const router = useRouter();
@@ -15,6 +16,13 @@ export default function VehicleDetailsPage() {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
+  const [attachments, setAttachments] = useState<VehicleAttachment[]>([]);
+  const [isLoadingAttachments, setIsLoadingAttachments] = useState(false);
+  const [attachmentError, setAttachmentError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [attachmentType, setAttachmentType] = useState<AttachmentType>('photo');
+  const [attachmentNotes, setAttachmentNotes] = useState('');
 
   useEffect(() => {
     const fetchVehicle = async () => {
@@ -34,10 +42,97 @@ export default function VehicleDetailsPage() {
       }
     };
 
+    const fetchAttachments = async () => {
+      try {
+        setIsLoadingAttachments(true);
+        setAttachmentError('');
+        const response = await fetch(`/api/vehicles/${vehicleId}/attachments`);
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to fetch attachments');
+        }
+
+        setAttachments(result.data || []);
+      } catch (err: any) {
+        setAttachmentError(err.message || 'An error occurred while loading attachments');
+      } finally {
+        setIsLoadingAttachments(false);
+      }
+    };
+
     if (vehicleId) {
       fetchVehicle();
+      fetchAttachments();
     }
   }, [vehicleId]);
+
+  const handleUpload = async () => {
+    if (!selectedFile || !vehicle) return;
+
+    try {
+      setUploading(true);
+      setAttachmentError('');
+
+      const supabase = createClient();
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        throw new Error('You must be signed in to upload attachments');
+      }
+
+      const path = `${user.id}/${vehicle.id}/${Date.now()}_${selectedFile.name}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('vehicle-files')
+        .upload(path, selectedFile, {
+          upsert: false,
+        });
+
+      if (uploadError) {
+        throw new Error(uploadError.message);
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('vehicle-files')
+        .getPublicUrl(path);
+
+      const fileUrl = publicUrlData.publicUrl;
+
+      const response = await fetch(`/api/vehicles/${vehicle.id}/attachments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          type: attachmentType,
+          file_url: fileUrl,
+          notes: attachmentNotes || undefined,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to save attachment');
+      }
+
+      setAttachments((prev) => [result.data, ...prev]);
+      setSelectedFile(null);
+      setAttachmentNotes('');
+      const fileInput = document.getElementById('attachment-file-input') as HTMLInputElement | null;
+      if (fileInput) {
+        fileInput.value = '';
+      }
+    } catch (err: any) {
+      setAttachmentError(err.message || 'An error occurred while uploading attachment');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -196,6 +291,105 @@ export default function VehicleDetailsPage() {
               </div>
             )}
           </dl>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Attachments</h2>
+          {attachmentError && (
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              {attachmentError}
+            </div>
+          )}
+          <div className="mb-4 flex flex-col md:flex-row gap-3 md:items-end">
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                File
+              </label>
+              <input
+                id="attachment-file-input"
+                type="file"
+                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                className="block w-full text-sm text-gray-900
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-md file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-blue-50 file:text-blue-700
+                  hover:file:bg-blue-100"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Type
+              </label>
+              <select
+                value={attachmentType}
+                onChange={(e) => setAttachmentType(e.target.value as AttachmentType)}
+                className="px-3 py-2 border rounded-lg text-sm"
+              >
+                <option value="photo">Photo</option>
+                <option value="document">Document</option>
+                <option value="invoice">Invoice</option>
+              </select>
+            </div>
+            <div className="flex-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Notes (optional)
+              </label>
+              <input
+                type="text"
+                value={attachmentNotes}
+                onChange={(e) => setAttachmentNotes(e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg text-sm"
+                placeholder="Description for this attachment"
+              />
+            </div>
+            <div>
+              <Button
+                size="sm"
+                onClick={handleUpload}
+                disabled={!selectedFile || uploading}
+                isLoading={uploading}
+              >
+                Upload
+              </Button>
+            </div>
+          </div>
+
+          <div>
+            {isLoadingAttachments ? (
+              <p className="text-sm text-gray-600">Loading attachments...</p>
+            ) : attachments.length === 0 ? (
+              <p className="text-sm text-gray-500">No attachments uploaded yet.</p>
+            ) : (
+              <ul className="divide-y divide-gray-200">
+                {attachments.map((att) => (
+                  <li key={att.id} className="py-3 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900 capitalize">
+                        {att.type}
+                      </p>
+                      {att.notes && (
+                        <p className="text-sm text-gray-600">{att.notes}</p>
+                      )}
+                      {att.created_at && (
+                        <p className="text-xs text-gray-400">
+                          {formatDate(att.created_at)}
+                        </p>
+                      )}
+                    </div>
+                    <a
+                      href={att.file_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-sm font-medium text-blue-600 hover:text-blue-800"
+                    >
+                      View
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </Card>
       </div>
     </div>

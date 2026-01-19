@@ -2,6 +2,7 @@
 export type VehicleStatus = 'Purchased' | 'In Transit' | 'Received' | 'Scrapped';
 export type VehicleType = '2W' | '4W';
 export type FuelType = 'Petrol' | 'Diesel' | 'CNG' | 'EV';
+export type AttachmentType = 'photo' | 'document' | 'invoice';
 
 // Vehicle interface matching database schema
 export interface Vehicle {
@@ -55,4 +56,14 @@ export interface VehicleSearchCriteria {
   purchase_date_to?: string;
   status?: VehicleStatus;
   vehicle_type?: VehicleType;
+}
+
+export interface VehicleAttachment {
+  id: string;
+  vehicle_id: string;
+  user_id: string;
+  type: AttachmentType;
+  file_url: string;
+  notes?: string;
+  created_at?: string;
 }
