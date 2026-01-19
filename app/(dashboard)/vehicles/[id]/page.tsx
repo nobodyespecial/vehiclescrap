@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { Vehicle, VehicleAttachment, AttachmentType } from '@/types/vehicle';
+import { Vehicle, VehicleAttachment, AttachmentType, VehicleStatusHistoryItem } from '@/types/vehicle';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import { formatCurrency, formatDate } from '@/lib/utils';
@@ -23,6 +23,8 @@ export default function VehicleDetailsPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [attachmentType, setAttachmentType] = useState<AttachmentType>('photo');
   const [attachmentNotes, setAttachmentNotes] = useState('');
+  const [statusHistory, setStatusHistory] = useState<VehicleStatusHistoryItem[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   useEffect(() => {
     const fetchVehicle = async () => {
@@ -61,9 +63,29 @@ export default function VehicleDetailsPage() {
       }
     };
 
+    const fetchStatusHistory = async () => {
+      try {
+        setIsLoadingHistory(true);
+        const response = await fetch(`/api/vehicles/${vehicleId}/status-history`);
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to fetch status history');
+        }
+
+        setStatusHistory(result.data || []);
+      } catch {
+        // Non-blocking; keep UI usable even if history fails
+        setStatusHistory([]);
+      } finally {
+        setIsLoadingHistory(false);
+      }
+    };
+
     if (vehicleId) {
       fetchVehicle();
       fetchAttachments();
+      fetchStatusHistory();
     }
   }, [vehicleId]);
 
@@ -264,6 +286,10 @@ export default function VehicleDetailsPage() {
                 </span>
               </dd>
             </div>
+            <div>
+              <dt className="text-sm font-medium text-gray-500">Expected Scrap Date</dt>
+              <dd className="mt-1 text-sm text-gray-900">{formatDate(vehicle.expected_scrap_date)}</dd>
+            </div>
           </dl>
         </Card>
 
@@ -291,6 +317,44 @@ export default function VehicleDetailsPage() {
               </div>
             )}
           </dl>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Notes</h2>
+          <p className="text-sm text-gray-700 whitespace-pre-wrap">
+            {vehicle.notes?.trim() ? vehicle.notes : 'No notes added.'}
+          </p>
+        </Card>
+
+        <Card className="md:col-span-2">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">Status History</h2>
+          {isLoadingHistory ? (
+            <p className="text-sm text-gray-600">Loading status history...</p>
+          ) : statusHistory.length === 0 ? (
+            <p className="text-sm text-gray-500">No status changes recorded yet.</p>
+          ) : (
+            <ol className="space-y-3">
+              {statusHistory.map((item) => (
+                <li key={item.id} className="flex items-start gap-3">
+                  <div className="mt-1 h-2 w-2 rounded-full bg-blue-600" />
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-900">
+                      <span className="font-medium">{item.to_status}</span>
+                      {item.from_status ? (
+                        <span className="text-gray-500"> (from {item.from_status})</span>
+                      ) : null}
+                    </p>
+                    {item.created_at ? (
+                      <p className="text-xs text-gray-400">{formatDate(item.created_at)}</p>
+                    ) : null}
+                    {item.note ? (
+                      <p className="text-sm text-gray-600">{item.note}</p>
+                    ) : null}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
         </Card>
 
         <Card className="md:col-span-2">

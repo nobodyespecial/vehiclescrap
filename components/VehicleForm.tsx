@@ -36,6 +36,8 @@ export default function VehicleForm({
     pickup_location: initialData?.pickup_location || '',
     scrap_yard_location: initialData?.scrap_yard_location || '',
     status: initialData?.status || 'Purchased',
+    expected_scrap_date: initialData?.expected_scrap_date || '',
+    notes: initialData?.notes || '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -245,6 +247,27 @@ export default function VehicleForm({
             required
             error={errors.status}
           />
+
+          <Input
+            label="Expected Scrap Date"
+            name="expected_scrap_date"
+            type="date"
+            value={formData.expected_scrap_date || ''}
+            onChange={(e) => handleChange('expected_scrap_date', e.target.value)}
+            error={errors.expected_scrap_date}
+          />
+
+          <div className="w-full md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Notes (optional)
+            </label>
+            <textarea
+              value={formData.notes || ''}
+              onChange={(e) => handleChange('notes', e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent border-gray-300 min-h-[96px]"
+              placeholder="Any additional notes about this vehicle..."
+            />
+          </div>
         </div>
 
         <div className="flex justify-end space-x-4 pt-4">

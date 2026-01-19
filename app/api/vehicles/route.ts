@@ -110,6 +110,8 @@ export async function POST(request: NextRequest) {
         pickup_location: body.pickup_location || null,
         scrap_yard_location: body.scrap_yard_location || null,
         status: body.status || 'Purchased',
+        expected_scrap_date: body.expected_scrap_date || null,
+        notes: body.notes || null,
       })
       .select()
       .single();

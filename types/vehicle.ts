@@ -23,6 +23,8 @@ export interface Vehicle {
   pickup_location?: string;
   scrap_yard_location?: string;
   status: VehicleStatus;
+  expected_scrap_date?: string;
+  notes?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -44,6 +46,8 @@ export interface VehicleFormData {
   pickup_location?: string;
   scrap_yard_location?: string;
   status: VehicleStatus;
+  expected_scrap_date?: string;
+  notes?: string;
 }
 
 // Search criteria
@@ -65,5 +69,15 @@ export interface VehicleAttachment {
   type: AttachmentType;
   file_url: string;
   notes?: string;
+  created_at?: string;
+}
+
+export interface VehicleStatusHistoryItem {
+  id: string;
+  vehicle_id: string;
+  user_id: string;
+  from_status?: VehicleStatus | null;
+  to_status: VehicleStatus;
+  note?: string | null;
   created_at?: string;
 }

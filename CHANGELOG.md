@@ -9,6 +9,12 @@ All notable changes to this project will be documented in this file.
   - API to list/create attachments per vehicle.
   - Upload section on the vehicle details page that stores files in the `vehicle-files` Supabase Storage bucket.
 
+## [1.3.0] - 2026-01-19
+
+- Added workflow tracking:
+  - `expected_scrap_date` and `notes` fields on vehicles (form + details page).
+  - Status change history stored in `vehicle_status_history` and displayed on the vehicle details page.
+
 ## [1.1.0] - 2026-01-19
 
 - Added CSV export for vehicles:

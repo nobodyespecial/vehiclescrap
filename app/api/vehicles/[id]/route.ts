@@ -122,7 +122,12 @@ export async function PUT(
     if (body.purchase_price !== undefined) updateData.purchase_price = body.purchase_price || null;
     if (body.pickup_location !== undefined) updateData.pickup_location = body.pickup_location || null;
     if (body.scrap_yard_location !== undefined) updateData.scrap_yard_location = body.scrap_yard_location || null;
+    if (body.expected_scrap_date !== undefined) updateData.expected_scrap_date = body.expected_scrap_date || null;
+    if (body.notes !== undefined) updateData.notes = body.notes || null;
     if (body.status !== undefined) updateData.status = body.status;
+
+    const fromStatus = existingVehicle.status;
+    const toStatus = body.status !== undefined ? body.status : existingVehicle.status;
 
     const { data: updatedVehicle, error: updateError } = await supabase
       .from('vehicles')
@@ -140,6 +145,17 @@ export async function PUT(
         );
       }
       return NextResponse.json({ error: updateError.message }, { status: 400 });
+    }
+
+    // Write status history record only if status actually changed
+    if (body.status !== undefined && fromStatus !== toStatus) {
+      await supabase.from('vehicle_status_history').insert({
+        vehicle_id: params.id,
+        user_id: user.id,
+        from_status: fromStatus,
+        to_status: toStatus,
+        note: null,
+      });
     }
 
     return NextResponse.json({ data: updatedVehicle });
